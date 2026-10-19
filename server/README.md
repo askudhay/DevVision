@@ -1,15 +1,21 @@
 # DevVision server
 
-NestJS API behind DevVision. It lists the company's repos and turns each selected repo's `onboarding.md` into one onboarding guide using an OpenAI-compatible LLM.
+NestJS API behind DevVision. It lists the company's repos and turns each selected repo's `onboarding.md` into one onboarding guide using Google's Gemma (or any Gemini model) through the `@google/genai` SDK.
 
 ## Run
 
 ```bash
 cd server
-cp .env.example .env   # set OPENAI_API_KEY; GITHUB_TOKEN is optional
+cp .env.example .env   # set GOOGLE_API_KEY; GITHUB_TOKEN is optional
 npm install
 npm run start:dev      # http://localhost:3000, Swagger UI at /docs
 ```
+
+## Model
+
+`LLM_MODEL` defaults to `gemma-4-31b-it`, served by the Gemini Developer API. Expect a minute or more per guide. Google's shared endpoints often return 500/503 under load, so failed calls are retried up to 3 times. If Gemma is too slow or unavailable, set `LLM_MODEL=gemini-3.8-flash`.
+
+To use Vertex AI on Google Cloud instead, set `GOOGLE_GENAI_USE_VERTEXAI=true` and enable the Vertex AI (Agent Platform) API on the key's project.
 
 ## Endpoints
 
@@ -43,7 +49,7 @@ curl -X POST localhost:3000/onboarding \
 ```json
 {
   "onboarding": "# Welcome to CrewClaro, Alex\n...",
-  "model": "gpt-5.4-mini",
+  "model": "gemma-4-31b-it",
   "sources": [
     { "repo": "jonathan-nobrega/crewclaro-api", "url": "https://github.com/jonathan-nobrega/crewclaro-api/blob/HEAD/onboarding.md", "found": true },
     { "repo": "jonathan-nobrega/crewclaro-web", "url": "https://github.com/jonathan-nobrega/crewclaro-web/blob/HEAD/onboarding.md", "found": false }
@@ -58,4 +64,4 @@ Repos without an `onboarding.md` are skipped and reported with `found: false`. I
 | 400 | Invalid body, or a repo reference that can't be parsed |
 | 404 | None of the repos has an `onboarding.md` |
 | 502 | The GitHub or LLM request failed (including GitHub rate limits) |
-| 503 | `OPENAI_API_KEY` is not set |
+| 503 | `GOOGLE_API_KEY` is not set |

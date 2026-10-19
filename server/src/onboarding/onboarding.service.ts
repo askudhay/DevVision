@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import { ApiError, GoogleGenAI } from '@google/genai';
 import { GithubService, ONBOARDING_FILE } from '../github/github.service';
 import { GenerateOnboardingDto } from './generate-onboarding.dto';
 import { COMPANY_CONTEXT, MASTER_PROMPT } from './master-prompt';
@@ -24,22 +24,30 @@ export interface OnboardingResult {
 
 @Injectable()
 export class OnboardingService {
-  private readonly openai: OpenAI | null;
+  private readonly ai: GoogleGenAI | null;
   private readonly model: string;
 
   constructor(
     private readonly github: GithubService,
     config: ConfigService,
   ) {
-    const apiKey = config.get<string>('OPENAI_API_KEY');
+    const apiKey = config.get<string>('GOOGLE_API_KEY');
     // No key still lets the server boot, so GET /repos works; POST /onboarding returns 503.
-    this.openai = apiKey ? new OpenAI({ apiKey }) : null;
-    this.model = config.get('OPENAI_MODEL', 'gpt-5.4-mini');
+    this.ai = apiKey
+      ? new GoogleGenAI({
+          apiKey,
+          // true: Vertex AI on Google Cloud (express mode). false: Gemini Developer API.
+          vertexai: config.get('GOOGLE_GENAI_USE_VERTEXAI') === 'true',
+          // Gemma and Gemini regularly return 500/503 under load; retry 408/429/5xx with backoff.
+          httpOptions: { retryOptions: { attempts: 3 } },
+        })
+      : null;
+    this.model = config.get('LLM_MODEL', 'gemma-4-31b-it');
   }
 
   async generate(dto: GenerateOnboardingDto): Promise<OnboardingResult> {
-    if (!this.openai) {
-      throw new ServiceUnavailableException('OPENAI_API_KEY is not set on the server');
+    if (!this.ai) {
+      throw new ServiceUnavailableException('GOOGLE_API_KEY is not set on the server');
     }
 
     const repos = [...new Set(dto.repos.map((repo) => this.github.toFullName(repo)))];
@@ -60,22 +68,20 @@ export class OnboardingService {
       });
     }
 
-    const completion = await this.openai.chat.completions
-      .create({
+    const response = await this.ai.models
+      .generateContent({
         model: this.model,
-        messages: [
-          { role: 'system', content: MASTER_PROMPT },
-          { role: 'user', content: this.buildContext(dto, found) },
-        ],
+        contents: this.buildContext(dto, found),
+        config: { systemInstruction: MASTER_PROMPT },
       })
       .catch((err: unknown) => {
-        const detail = err instanceof OpenAI.APIError ? `${err.status} ${err.message}` : String(err);
+        const detail = err instanceof ApiError ? `${err.status} ${err.message}` : String(err);
         throw new BadGatewayException(`LLM request failed: ${detail}`);
       });
 
     return {
-      onboarding: completion.choices[0]?.message.content ?? '',
-      model: completion.model,
+      onboarding: response.text ?? '',
+      model: response.modelVersion ?? this.model,
       sources,
     };
   }

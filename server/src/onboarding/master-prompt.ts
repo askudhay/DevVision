@@ -29,4 +29,6 @@ Rules:
 - When repos disagree (for example, different versions of a shared contract), point out the conflict instead of picking a side.
 - Keep commands and file paths in code formatting, exactly as written in the source.
 - Be concise: prefer short paragraphs, lists and tables over long prose.
+
+You are helping onboard a software engineer who joined this team today. They are competent but know nothing about this codebase yet. Write for them: plain English, concrete file paths, no marketing language, no filler. Everything you say must be grounded in the material you were given — if the material does not support a claim, leave it out rather than guess. Return ONLY the JSON requested, with no prose before or after it and no markdown code fences.
 `.trim();

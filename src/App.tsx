@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ReactFlow, Controls, Background } from '@xyflow/react';
 import Editor from '@monaco-editor/react';
 import { GoogleGenAI } from '@google/genai';
-import { Play, Copy, Check, ExternalLink, ShieldCheck, UserCheck, Code2, Sparkles, RefreshCw, User, Briefcase } from 'lucide-react';
+import { Play, Copy, Check, ExternalLink, ShieldCheck, Code2, Sparkles, RefreshCw, User, BookOpen, Network } from 'lucide-react';
 import '@xyflow/react/dist/style.css';
+import OnboardingGuide from './OnboardingGuide';
 
 // Initialize Gemini API Client
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
@@ -38,6 +39,11 @@ const departmentsList = [
   'QA & DevOps'
 ];
 
+const developerTabs = [
+  { id: 'guide', label: 'Onboarding Guide', Icon: BookOpen },
+  { id: 'explorer', label: 'Architecture Explorer', Icon: Network }
+] as const;
+
 export default function App() {
   // Mode Check from URL query parameters
   const queryParams = new URLSearchParams(window.location.search);
@@ -57,6 +63,7 @@ export default function App() {
   const [fetching, setFetching] = useState<boolean>(false);
 
   // Developer View State
+  const [devTab, setDevTab] = useState<'guide' | 'explorer'>('guide');
   const assignedReposList = assignedReposParam ? assignedReposParam.split(',') : ['frontend-core'];
   const [activeRepo, setActiveRepo] = useState<string>(assignedReposList[0] || 'frontend-core');
   const currentArch = mockRepoArchitectures[activeRepo] || mockRepoArchitectures['frontend-core'];
@@ -84,15 +91,16 @@ export default function App() {
     try {
       const res = await fetch(`https://api.github.com/orgs/${extractedOrg}/repos?per_page=8&sort=updated`);
       const data = await res.json();
+      // Repos are selected by full name (owner/repo) so the onboarding API looks them up in the right account.
       if (Array.isArray(data)) {
         setFetchedRepos(data);
-        setSelectedRepos(data.slice(0, 3).map((r: any) => r.name));
+        setSelectedRepos(data.slice(0, 3).map((r: any) => r.full_name));
       } else {
         const userRes = await fetch(`https://api.github.com/users/${extractedOrg}/repos?per_page=8&sort=updated`);
         const userData = await userRes.json();
         if (Array.isArray(userData)) {
           setFetchedRepos(userData);
-          setSelectedRepos(userData.slice(0, 3).map((r: any) => r.name));
+          setSelectedRepos(userData.slice(0, 3).map((r: any) => r.full_name));
         } else {
           setFetchedRepos([]);
         }
@@ -265,8 +273,8 @@ ${selectedCode.code}`
                   alignItems: 'center',
                   gap: '10px',
                   padding: '12px',
-                  background: selectedRepos.includes(repo.name) ? '#1e3a5f' : '#0f172a',
-                  border: `1px solid ${selectedRepos.includes(repo.name) ? '#38bdf8' : '#334155'}`,
+                  background: selectedRepos.includes(repo.full_name) ? '#1e3a5f' : '#0f172a',
+                  border: `1px solid ${selectedRepos.includes(repo.full_name) ? '#38bdf8' : '#334155'}`,
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -274,10 +282,10 @@ ${selectedCode.code}`
               >
                 <input
                   type="checkbox"
-                  checked={selectedRepos.includes(repo.name)}
+                  checked={selectedRepos.includes(repo.full_name)}
                   onChange={() => {
                     setSelectedRepos((prev) =>
-                      prev.includes(repo.name) ? prev.filter((r) => r !== repo.name) : [...prev, repo.name]
+                      prev.includes(repo.full_name) ? prev.filter((r) => r !== repo.full_name) : [...prev, repo.full_name]
                     );
                   }}
                 />
@@ -329,84 +337,107 @@ ${selectedCode.code}`
   // RENDER DEVELOPER VIEW
   // ------------------------------------------------------------------
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#0f172a', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Left Panel: React Flow Graph View */}
-      <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #334155' }}>
-        <div style={{ padding: '12px 20px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ⚡ DevVision <span style={{ fontSize: '11px', background: '#334155', color: '#10b981', padding: '2px 8px', borderRadius: '4px' }}>Welcome, {devName} ({devDept})</span>
-            </h2>
-            <small style={{ color: '#94a3b8' }}>Assigned Repositories Architecture Topology</small>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0f172a', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ padding: '12px 20px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+        <h2 style={{ margin: 0, fontSize: '18px', color: '#38bdf8', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+          <span style={{ whiteSpace: 'nowrap' }}>⚡ DevVision</span> <span style={{ fontSize: '11px', background: '#334155', color: '#10b981', padding: '2px 8px', borderRadius: '4px' }}>Welcome, {devName} ({devDept})</span>
+        </h2>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <select
-              value={activeRepo}
-              onChange={(e) => setActiveRepo(e.target.value)}
-              style={{ background: '#0f172a', color: '#38bdf8', border: '1px solid #38bdf8', padding: '6px 12px', borderRadius: '6px', fontSize: '13px' }}
-            >
-              {assignedReposList.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-
+        <div style={{ display: 'flex', gap: '4px', padding: '4px', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}>
+          {developerTabs.map(({ id, label, Icon }) => (
             <button
-              onClick={triggerVoiceTour}
-              style={{ background: '#10b981', color: '#0f172a', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              key={id}
+              onClick={() => setDevTab(id)}
+              style={{ background: devTab === id ? '#38bdf8' : 'transparent', color: devTab === id ? '#0f172a' : '#cbd5e1', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <Play size={14} /> Play Story Mode
+              <Icon size={14} /> {label}
             </button>
-          </div>
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <ReactFlow
-            nodes={currentArch.nodes}
-            edges={currentArch.edges}
-            onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-            fitView
-          >
-            <Background color="#334155" gap={16} />
-            <Controls />
-          </ReactFlow>
+          ))}
         </div>
       </div>
 
-      {/* Right Panel: Monaco Editor & Gemini Insights */}
-      <div style={{ width: '520px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
-        <div style={{ padding: '12px 16px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontSize: '11px', background: '#3b82f6', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
-              {selectedCode.framework}
-            </span>
-            <h4 style={{ margin: '4px 0 0 0', color: '#f8fafc', fontSize: '13px' }}>{selectedCode.file}</h4>
-          </div>
-          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{selectedCode.label}</span>
-        </div>
+      {devTab === 'guide' ? (
+        <OnboardingGuide
+          repos={assignedReposList}
+          developerName={queryParams.get('devName') || undefined}
+          department={queryParams.get('dept') || undefined}
+        />
+      ) : (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          {/* Left Panel: React Flow Graph View */}
+          <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #334155' }}>
+            <div style={{ padding: '12px 20px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <small style={{ color: '#94a3b8' }}>Assigned Repositories Architecture Topology</small>
 
-        <div style={{ height: '280px', borderBottom: '1px solid #334155' }}>
-          <Editor
-            height="100%"
-            defaultLanguage="typescript"
-            theme="vs-dark"
-            value={selectedCode.code}
-            options={{ readOnly: true, minimap: { enabled: false }, fontSize: 12 }}
-          />
-        </div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <select
+                  value={activeRepo}
+                  onChange={(e) => setActiveRepo(e.target.value)}
+                  style={{ background: '#0f172a', color: '#38bdf8', border: '1px solid #38bdf8', padding: '6px 12px', borderRadius: '6px', fontSize: '13px' }}
+                >
+                  {assignedReposList.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
 
-        <div style={{ flex: 1, padding: '16px', overflowY: 'auto', background: '#1e293b' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h4 style={{ margin: 0, color: '#38bdf8', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sparkles size={16} /> Gemini AI Onboarding Insights
-            </h4>
-            {analyzing && <span style={{ fontSize: '11px', color: '#f59e0b' }}>Analyzing snippet...</span>}
+                <button
+                  onClick={triggerVoiceTour}
+                  style={{ background: '#10b981', color: '#0f172a', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Play size={14} /> Play Story Mode
+                </button>
+              </div>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <ReactFlow
+                nodes={currentArch.nodes}
+                edges={currentArch.edges}
+                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                fitView
+              >
+                <Background color="#334155" gap={16} />
+                <Controls />
+              </ReactFlow>
+            </div>
           </div>
-          <div style={{ background: '#0f172a', padding: '12px', borderRadius: '6px', fontSize: '13px', lineHeight: '1.5', color: '#cbd5e1', border: '1px solid #334155', whiteSpace: 'pre-wrap' }}>
-            {aiSummary}
+
+          {/* Right Panel: Monaco Editor & Gemini Insights */}
+          <div style={{ width: '520px', display: 'flex', flexDirection: 'column', background: '#0f172a' }}>
+            <div style={{ padding: '12px 16px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '11px', background: '#3b82f6', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                  {selectedCode.framework}
+                </span>
+                <h4 style={{ margin: '4px 0 0 0', color: '#f8fafc', fontSize: '13px' }}>{selectedCode.file}</h4>
+              </div>
+              <span style={{ fontSize: '11px', color: '#94a3b8' }}>{selectedCode.label}</span>
+            </div>
+
+            <div style={{ height: '280px', borderBottom: '1px solid #334155' }}>
+              <Editor
+                height="100%"
+                defaultLanguage="typescript"
+                theme="vs-dark"
+                value={selectedCode.code}
+                options={{ readOnly: true, minimap: { enabled: false }, fontSize: 12 }}
+              />
+            </div>
+
+            <div style={{ flex: 1, padding: '16px', overflowY: 'auto', background: '#1e293b' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0, color: '#38bdf8', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles size={16} /> Gemini AI Onboarding Insights
+                </h4>
+                {analyzing && <span style={{ fontSize: '11px', color: '#f59e0b' }}>Analyzing snippet...</span>}
+              </div>
+              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '6px', fontSize: '13px', lineHeight: '1.5', color: '#cbd5e1', border: '1px solid #334155', whiteSpace: 'pre-wrap' }}>
+                {aiSummary}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

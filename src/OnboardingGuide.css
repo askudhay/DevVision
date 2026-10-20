@@ -1,0 +1,683 @@
+/* Onboarding guide page. Colours follow the slate palette used across App.tsx. */
+
+.og-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 40px 24px 80px;
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.65;
+  letter-spacing: normal;
+  color: #cbd5e1;
+}
+
+.og-column {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* Inline code anywhere on the page (overrides the global `code` style in index.css) */
+.og-page code {
+  display: inline;
+  padding: 2px 6px;
+  font-family: var(--mono);
+  font-size: 0.86em;
+  line-height: inherit;
+  color: #7dd3fc;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  /* Keeps padding and border on each line when long code wraps */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Repo chips and buttons */
+
+.og-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.og-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.og-status .og-sources {
+  justify-content: center;
+}
+
+.og-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #cbd5e1;
+  text-decoration: none;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 999px;
+}
+
+a.og-source:hover {
+  border-color: #38bdf8;
+}
+
+.og-source--found {
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.og-source--missing {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.og-source-note {
+  color: #94a3b8;
+}
+
+.og-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.og-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.og-button:hover {
+  color: #fff;
+  border-color: #38bdf8;
+}
+
+.og-button--primary {
+  color: #0f172a;
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.og-button--primary:hover {
+  color: #0f172a;
+  background: #34d399;
+  border-color: #34d399;
+}
+
+/* Loading and error states */
+
+.og-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 40px;
+  padding: 40px 32px;
+  text-align: center;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.og-status h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.og-status p {
+  max-width: 540px;
+  margin: 0;
+  color: #94a3b8;
+}
+
+.og-elapsed {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #64748b;
+}
+
+.og-spin {
+  animation: og-spin 1.2s linear infinite;
+}
+
+@keyframes og-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.og-skeleton {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 540px;
+  margin-top: 8px;
+}
+
+.og-skeleton span {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #273449 0%, #334155 50%, #273449 100%);
+  background-size: 200% 100%;
+  animation: og-shimmer 1.6s ease-in-out infinite;
+}
+
+.og-skeleton span:nth-child(2) {
+  width: 85%;
+}
+
+.og-skeleton span:nth-child(3) {
+  width: 92%;
+}
+
+.og-skeleton span:nth-child(4) {
+  width: 60%;
+}
+
+@keyframes og-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .og-spin,
+  .og-skeleton span {
+    animation: none;
+  }
+}
+
+/* The guide: one card per section */
+
+.og-guide {
+  display: grid;
+  gap: 20px;
+}
+
+.og-card {
+  min-width: 0;
+  padding: 28px 32px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+
+.og-prose p {
+  margin: 0 0 12px;
+}
+
+.og-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.og-guide strong {
+  color: #f8fafc;
+}
+
+.og-guide a {
+  color: #38bdf8;
+}
+
+.og-hero {
+  padding: 32px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(56, 189, 248, 0.14), transparent 55%),
+    radial-gradient(100% 120% at 100% 100%, rgba(16, 185, 129, 0.1), transparent 60%),
+    #1e293b;
+}
+
+.og-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
+.og-hero h1 {
+  margin: 6px 0 14px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+  color: #f8fafc;
+}
+
+.og-hero .og-prose {
+  font-size: 17px;
+  color: #cbd5e1;
+}
+
+.og-section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.og-section-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: #f8fafc;
+}
+
+.og-section-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border-radius: 8px;
+}
+
+.og-section-aside {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.og-section-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 14px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.og-section-note svg {
+  flex: none;
+  color: #fbbf24;
+}
+
+/* Architecture diagram */
+
+.og-diagram {
+  margin: 18px 0 0;
+  padding: 20px;
+  overflow-x: auto;
+  text-align: center;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.og-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.og-diagram--loading {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.og-diagram--source {
+  text-align: left;
+}
+
+.og-diagram--source code {
+  padding: 0;
+  font-size: 13px;
+  color: #e2e8f0;
+  background: none;
+  border: 0;
+}
+
+/* Repo cards */
+
+.og-repos {
+  display: grid;
+  gap: 16px;
+}
+
+.og-repo {
+  padding: 22px 24px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+}
+
+.og-repo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.og-repo-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.og-repo-head h3 svg {
+  color: #38bdf8;
+}
+
+.og-guide .og-repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: none;
+}
+
+.og-guide .og-repo-link:hover {
+  color: #38bdf8;
+}
+
+.og-repo-purpose {
+  margin: 8px 0 0;
+  color: #cbd5e1;
+}
+
+.og-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.og-stack li {
+  padding: 2px 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 999px;
+}
+
+.og-repo-block {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #1e293b;
+}
+
+.og-repo-block h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+/* Numbered setup steps */
+
+.og-steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: og-step;
+}
+
+.og-steps li {
+  position: relative;
+  padding-left: 36px;
+  font-size: 15px;
+  counter-increment: og-step;
+}
+
+.og-steps li::before {
+  content: counter(og-step);
+  position: absolute;
+  top: 1px;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #38bdf8;
+  border-radius: 50%;
+}
+
+.og-step-text {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.og-command {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.og-page .og-command code {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 13.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #e2e8f0;
+  background: none;
+  border: 0;
+}
+
+.og-command code::before {
+  content: '$ ';
+  color: #64748b;
+  user-select: none;
+}
+
+.og-icon-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #94a3b8;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.og-icon-button:hover {
+  color: #f8fafc;
+  background: #1e293b;
+  border-color: #334155;
+}
+
+/* Gotchas and gaps: labelled callouts */
+
+.og-gotchas,
+.og-gaps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.og-gotchas li,
+.og-gaps li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  font-size: 15px;
+  border-left: 3px solid;
+  border-radius: 0 8px 8px 0;
+}
+
+.og-gotchas li {
+  background: rgba(245, 158, 11, 0.07);
+  border-left-color: #f59e0b;
+}
+
+.og-gaps li {
+  background: rgba(148, 163, 184, 0.08);
+  border-left-color: #64748b;
+}
+
+/* First-week checklist */
+
+.og-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.og-progress-bar {
+  width: 96px;
+  height: 6px;
+  overflow: hidden;
+  background: #334155;
+  border-radius: 3px;
+}
+
+.og-progress-bar span {
+  display: block;
+  height: 100%;
+  background: #10b981;
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.og-checklist {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.og-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.og-checklist label:hover {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.og-checklist input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+
+.og-checklist .og-done span {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+/* Glossary */
+
+.og-glossary {
+  margin: 0;
+}
+
+.og-glossary div {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 4px 20px;
+  padding: 12px 0;
+  border-top: 1px solid #334155;
+}
+
+.og-glossary div:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.og-glossary dt {
+  font-weight: 600;
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.og-glossary dd {
+  margin: 0;
+  font-size: 15px;
+}
+
+.og-footnote {
+  margin: 16px 0 0;
+  font-size: 13px;
+  text-align: center;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .og-page {
+    padding: 24px 16px 48px;
+  }
+
+  .og-card,
+  .og-hero {
+    padding: 22px 18px;
+  }
+
+  .og-repo {
+    padding: 18px 16px;
+  }
+
+  .og-hero h1 {
+    font-size: 23px;
+  }
+
+  .og-glossary div {
+    grid-template-columns: 1fr;
+  }
+}

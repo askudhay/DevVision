@@ -1,0 +1,186 @@
+{
+    "guide": {
+        "title": "Onboarding guide: Frontend Engineering",
+        "welcome": "Welcome, Jony! CrewClaro builds communication tools for construction crews, ensuring every chat message is translated for all users. Your assigned repositories are the mobile app, the translation worker, and the infrastructure code.",
+        "architecture": {
+            "summary": "The `crewclaro-mobile` app communicates with `crewclaro-api` via REST and WebSockets, uploading photos to S3. The `crewclaro-translator` worker processes translation jobs from a Redis queue managed by the API, and `crewclaro-infra` manages the AWS infrastructure including ECS, RDS, and Redis.",
+            "diagram": "graph TD\n  MOBILE[\"crewclaro-mobile\"] --> API[\"crewclaro-api\"]\n  MOBILE --> S3[\"S3 (via crewclaro-infra)\"]\n  API --> REDIS[\"Redis (via crewclaro-infra)\"]\n  REDIS --> TRANSLATOR[\"crewclaro-translator\"]\n  TRANSLATOR --> REDIS\n  API --> DB[\"Postgres (via crewclaro-infra)\"]"
+        },
+        "repos": [
+            {
+                "name": "crewclaro-infra",
+                "purpose": "Terraform code to provision AWS infrastructure for staging and production.",
+                "stack": [
+                    "Terraform",
+                    "AWS"
+                ],
+                "setup": [
+                    {
+                        "step": "Navigate to staging environment",
+                        "command": "cd envs/staging"
+                    },
+                    {
+                        "step": "Initialize Terraform",
+                        "command": "terraform init"
+                    },
+                    {
+                        "step": "Generate a plan",
+                        "command": "terraform plan -var=\"image_tag=$(git -C ../../../crewclaro-api rev-parse --short HEAD)\""
+                    }
+                ],
+                "gotchas": [
+                    {
+                        "title": "CI Plan Review",
+                        "detail": "CI runs `terraform plan` on every PR; check the output before merging."
+                    },
+                    {
+                        "title": "API Database Connection",
+                        "detail": "The `DATABASE_URL` is not yet wired from the `db` module, meaning the API cannot reach Postgres when deployed."
+                    },
+                    {
+                        "title": "Env Mirroring",
+                        "detail": "Production and staging are separate copies of `main.tf`; changes usually need to be applied to both."
+                    }
+                ]
+            },
+            {
+                "name": "crewclaro-mobile",
+                "purpose": "The field app for construction crews to chat, view tasks and upload photos.",
+                "stack": [
+                    "React Native 0.76",
+                    "Expo SDK 52",
+                    "TypeScript",
+                    "WatermelonDB",
+                    "Expo Notifications",
+                    "expo-camera",
+                    "expo-speech"
+                ],
+                "setup": [
+                    {
+                        "step": "Install dependencies",
+                        "command": "npm install"
+                    },
+                    {
+                        "step": "Start the app",
+                        "command": "npx expo start"
+                    }
+                ],
+                "gotchas": [
+                    {
+                        "title": "Offline Queue Persistence",
+                        "detail": "The offline queue is in-memory only; data is lost if the app is killed."
+                    },
+                    {
+                        "title": "Undocumented Endpoint",
+                        "detail": "The `myTasksToday()` function calls `/projects/_all/tasks?assignee=me&due=today`, which is not in the `crewclaro-api` documentation."
+                    },
+                    {
+                        "title": "Queued State UI",
+                        "detail": "When a send fails, `sendMessage()` returns `null` and the message appears as \"queued\" in the UI."
+                    }
+                ]
+            },
+            {
+                "name": "crewclaro-translator",
+                "purpose": "A Python worker that translates chat messages using a construction-specific glossary.",
+                "stack": [
+                    "Python 3.12",
+                    "Redis",
+                    "Pydantic",
+                    "FastAPI"
+                ],
+                "setup": [
+                    {
+                        "step": "Install dependencies",
+                        "command": "pip install -e \".[dev]\""
+                    },
+                    {
+                        "step": "Load environment variables",
+                        "command": "set -a; source .env.example; set +a"
+                    },
+                    {
+                        "step": "Run the worker",
+                        "command": "python -m app.worker"
+                    },
+                    {
+                        "step": "Run the admin API",
+                        "command": "uvicorn app.main:app --port 8081"
+                    },
+                    {
+                        "step": "Run tests",
+                        "command": "pytest"
+                    }
+                ],
+                "gotchas": [
+                    {
+                        "title": "Contract Synchronization",
+                        "detail": "`app/schemas.py` must match `crewclaro-api/src/queue/translation.types.ts`. Update both together."
+                    },
+                    {
+                        "title": "LLM Stub",
+                        "detail": "The `llm` provider is a stub; use the `deepl` provider and a `DEEPL_API_KEY` for real translations."
+                    },
+                    {
+                        "title": "Worker Concurrency",
+                        "detail": "The `WORKER_CONCURRENCY` variable in `.env.example` is not yet read by `worker.py`."
+                    }
+                ]
+            }
+        ],
+        "firstWeek": [
+            "Request access to the AWS environment and GHCR image registry.",
+            "Set up the `crewclaro-mobile` environment using `npm install` and `npx expo start`.",
+            "Install Python 3.12 and run the `crewclaro-translator` locally with a local Redis instance.",
+            "Review the API types shared between `crewclaro-mobile` and `crewclaro-web` in `@crewclaro/api-types`.",
+            "Read the `crewclaro-infra` Terraform modules to understand the VPC and S3 bucket configuration.",
+            "Take a good first task to implement persistence for the offline queue in `crewclaro-mobile`."
+        ],
+        "glossary": [
+            {
+                "term": "BRPOP",
+                "definition": "A Redis command used by the worker to pull translation jobs from the queue."
+            },
+            {
+                "term": "Fargate",
+                "definition": "A serverless compute engine for containers on AWS."
+            },
+            {
+                "term": "WatermelonDB",
+                "definition": "An offline-first local database for the mobile app."
+            }
+        ],
+        "gaps": [
+            {
+                "topic": "API Documentation",
+                "detail": "The `crewclaro-api` documentation is missing the `/projects/_all/tasks` endpoint used by the mobile app."
+            },
+            {
+                "topic": "Infra Database Wiring",
+                "detail": "The `crewclaro-infra` needs to be wired to provide `DATABASE_URL` to the API service."
+            },
+            {
+                "topic": "Offline Queue Persistence",
+                "detail": "detail: The `crewclaro-mobile` offline queue currently lacks persistence across app restarts."
+            }
+        ]
+    },
+    "markdown": "# Onboarding guide: Frontend Engineering\n\n## Welcome\n\nWelcome, Jony! CrewClaro builds communication tools for construction crews, ensuring every chat message is translated for all users. Your assigned repositories are the mobile app, the translation worker, and the infrastructure code.\n\n## How the pieces fit together\n\nThe `crewclaro-mobile` app communicates with `crewclaro-api` via REST and WebSockets, uploading photos to S3. The `crewclaro-translator` worker processes translation jobs from a Redis queue managed by the API, and `crewclaro-infra` manages the AWS infrastructure including ECS, RDS, and Redis.\n\n```mermaid\ngraph TD\n  MOBILE[\"crewclaro-mobile\"] --> API[\"crewclaro-api\"]\n  MOBILE --> S3[\"S3 (via crewclaro-infra)\"]\n  API --> REDIS[\"Redis (via crewclaro-infra)\"]\n  REDIS --> TRANSLATOR[\"crewclaro-translator\"]\n  TRANSLATOR --> REDIS\n  API --> DB[\"Postgres (via crewclaro-infra)\"]\n```\n\n## Repo by repo\n\n### crewclaro-infra\n\nTerraform code to provision AWS infrastructure for staging and production.\n\n**Stack:** Terraform, AWS\n\n**Run it locally:**\n\n1. Navigate to staging environment\n\n   ```bash\n   cd envs/staging\n   ```\n2. Initialize Terraform\n\n   ```bash\n   terraform init\n   ```\n3. Generate a plan\n\n   ```bash\n   terraform plan -var=\"image_tag=$(git -C ../../../crewclaro-api rev-parse --short HEAD)\"\n   ```\n\n**Conventions & gotchas:**\n\n- **CI Plan Review:** CI runs `terraform plan` on every PR; check the output before merging.\n- **API Database Connection:** The `DATABASE_URL` is not yet wired from the `db` module, meaning the API cannot reach Postgres when deployed.\n- **Env Mirroring:** Production and staging are separate copies of `main.tf`; changes usually need to be applied to both.\n\n### crewclaro-mobile\n\nThe field app for construction crews to chat, view tasks and upload photos.\n\n**Stack:** React Native 0.76, Expo SDK 52, TypeScript, WatermelonDB, Expo Notifications, expo-camera, expo-speech\n\n**Run it locally:**\n\n1. Install dependencies\n\n   ```bash\n   npm install\n   ```\n2. Start the app\n\n   ```bash\n   npx expo start\n   ```\n\n**Conventions & gotchas:**\n\n- **Offline Queue Persistence:** The offline queue is in-memory only; data is lost if the app is killed.\n- **Undocumented Endpoint:** The `myTasksToday()` function calls `/projects/_all/tasks?assignee=me&due=today`, which is not in the `crewclaro-api` documentation.\n- **Queued State UI:** When a send fails, `sendMessage()` returns `null` and the message appears as \"queued\" in the UI.\n\n### crewclaro-translator\n\nA Python worker that translates chat messages using a construction-specific glossary.\n\n**Stack:** Python 3.12, Redis, Pydantic, FastAPI\n\n**Run it locally:**\n\n1. Install dependencies\n\n   ```bash\n   pip install -e \".[dev]\"\n   ```\n2. Load environment variables\n\n   ```bash\n   set -a; source .env.example; set +a\n   ```\n3. Run the worker\n\n   ```bash\n   python -m app.worker\n   ```\n4. Run the admin API\n\n   ```bash\n   uvicorn app.main:app --port 8081\n   ```\n5. Run tests\n\n   ```bash\n   pytest\n   ```\n\n**Conventions & gotchas:**\n\n- **Contract Synchronization:** `app/schemas.py` must match `crewclaro-api/src/queue/translation.types.ts`. Update both together.\n- **LLM Stub:** The `llm` provider is a stub; use the `deepl` provider and a `DEEPL_API_KEY` for real translations.\n- **Worker Concurrency:** The `WORKER_CONCURRENCY` variable in `.env.example` is not yet read by `worker.py`.\n\n## Your first week\n\n- [ ] Request access to the AWS environment and GHCR image registry.\n- [ ] Set up the `crewclaro-mobile` environment using `npm install` and `npx expo start`.\n- [ ] Install Python 3.12 and run the `crewclaro-translator` locally with a local Redis instance.\n- [ ] Review the API types shared between `crewclaro-mobile` and `crewclaro-web` in `@crewclaro/api-types`.\n- [ ] Read the `crewclaro-infra` Terraform modules to understand the VPC and S3 bucket configuration.\n- [ ] Take a good first task to implement persistence for the offline queue in `crewclaro-mobile`.\n\n## Glossary\n\n| Term | Definition |\n|---|---|\n| BRPOP | A Redis command used by the worker to pull translation jobs from the queue. |\n| Fargate | A serverless compute engine for containers on AWS. |\n| WatermelonDB | An offline-first local database for the mobile app. |\n\n## Gaps in the docs\n\n- **API Documentation:** The `crewclaro-api` documentation is missing the `/projects/_all/tasks` endpoint used by the mobile app.\n- **Infra Database Wiring:** The `crewclaro-infra` needs to be wired to provide `DATABASE_URL` to the API service.\n- **Offline Queue Persistence:** detail: The `crewclaro-mobile` offline queue currently lacks persistence across app restarts.\n",
+    "model": "gemma-4-31b-it",
+    "sources": [
+        {
+            "repo": "jonathan-nobrega/crewclaro-infra",
+            "url": "https://github.com/jonathan-nobrega/crewclaro-infra/blob/HEAD/onboarding.md",
+            "found": true
+        },
+        {
+            "repo": "jonathan-nobrega/crewclaro-mobile",
+            "url": "https://github.com/jonathan-nobrega/crewclaro-mobile/blob/HEAD/onboarding.md",
+            "found": true
+        },
+        {
+            "repo": "jonathan-nobrega/crewclaro-translator",
+            "url": "https://github.com/jonathan-nobrega/crewclaro-translator/blob/HEAD/onboarding.md",
+            "found": true
+        }
+    ]
+}

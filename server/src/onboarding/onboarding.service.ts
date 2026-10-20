@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -9,6 +10,7 @@ import { ApiError, GoogleGenAI } from '@google/genai';
 import { GithubService, ONBOARDING_FILE } from '../github/github.service';
 import { GenerateOnboardingDto } from './generate-onboarding.dto';
 import { COMPANY_CONTEXT, MASTER_PROMPT } from './master-prompt';
+import { guideSchema, OnboardingGuide, parseGuide, toMarkdown } from './onboarding-guide';
 
 export interface OnboardingSource {
   repo: string;
@@ -17,13 +19,16 @@ export interface OnboardingSource {
 }
 
 export interface OnboardingResult {
-  onboarding: string;
+  guide: OnboardingGuide;
+  /** The same guide as one Markdown document. */
+  markdown: string;
   model: string;
   sources: OnboardingSource[];
 }
 
 @Injectable()
 export class OnboardingService {
+  private readonly logger = new Logger(OnboardingService.name);
   private readonly ai: GoogleGenAI | null;
   private readonly model: string;
 
@@ -72,15 +77,27 @@ export class OnboardingService {
       .generateContent({
         model: this.model,
         contents: this.buildContext(dto, found),
-        config: { systemInstruction: MASTER_PROMPT },
+        config: {
+          systemInstruction: MASTER_PROMPT,
+          // The model returns the guide's sections as JSON so the web app can lay each one out.
+          responseMimeType: 'application/json',
+          responseJsonSchema: guideSchema(found.map(({ repo }) => repo.split('/')[1])),
+        },
       })
       .catch((err: unknown) => {
         const detail = err instanceof ApiError ? `${err.status} ${err.message}` : String(err);
         throw new BadGatewayException(`LLM request failed: ${detail}`);
       });
 
+    const guide = parseGuide(response.text ?? '');
+    if (!guide) {
+      this.logger.warn(`Unreadable guide from ${this.model}: ${(response.text ?? '').slice(0, 500)}`);
+      throw new BadGatewayException('The model returned a guide DevVision could not read. Try generating it again.');
+    }
+
     return {
-      onboarding: response.text ?? '',
+      guide,
+      markdown: toMarkdown(guide),
       model: response.modelVersion ?? this.model,
       sources,
     };

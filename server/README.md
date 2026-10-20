@@ -38,6 +38,8 @@ Lists `GITHUB_OWNER`'s repos whose name contains `GITHUB_REPO_FILTER`. This matc
 
 For each repo, the server fetches `onboarding.md` from the root of its default branch. It joins those files with the company context, sends them to the LLM along with the master prompt in [`src/onboarding/master-prompt.ts`](src/onboarding/master-prompt.ts), and returns the generated guide.
 
+The model answers in JSON mode against the schema in [`src/onboarding/onboarding-guide.ts`](src/onboarding/onboarding-guide.ts), so `guide` has one field per section and the web app can lay each one out. `markdown` is the same guide as a single Markdown document.
+
 Each repo can be given as `"crewclaro-api"`, `"jonathan-nobrega/crewclaro-api"` or a GitHub URL. `developerName` and `department` are optional and personalise the guide.
 
 ```bash
@@ -48,7 +50,24 @@ curl -X POST localhost:3000/onboarding \
 
 ```json
 {
-  "onboarding": "# Welcome to CrewClaro, Alex\n...",
+  "guide": {
+    "title": "Onboarding guide: Backend & Platform",
+    "welcome": "Welcome to the team, Alex! CrewClaro builds ...",
+    "architecture": { "summary": "`crewclaro-web` talks to `crewclaro-api` over REST ...", "diagram": "graph TD\n  Web[\"crewclaro-web\"] --> API[\"crewclaro-api\"]" },
+    "repos": [
+      {
+        "name": "crewclaro-api",
+        "purpose": "The central backend ...",
+        "stack": ["Node.js 22", "NestJS 10", "PostgreSQL 16"],
+        "setup": [{ "step": "Start Postgres and Redis", "command": "docker compose up -d postgres redis" }],
+        "gotchas": [{ "title": "Contract sync", "detail": "`src/queue/translation.types.ts` must match ..." }]
+      }
+    ],
+    "firstWeek": ["Run `crewclaro-api` locally and open `http://localhost:4000`."],
+    "glossary": [{ "term": "`translation:jobs`", "definition": "The Redis list ..." }],
+    "gaps": [{ "topic": "Clerk setup", "detail": "No docs on configuring Clerk for local development." }]
+  },
+  "markdown": "# Onboarding guide: Backend & Platform\n\n## Welcome\n...",
   "model": "gemma-4-31b-it",
   "sources": [
     { "repo": "jonathan-nobrega/crewclaro-api", "url": "https://github.com/jonathan-nobrega/crewclaro-api/blob/HEAD/onboarding.md", "found": true },
@@ -63,5 +82,5 @@ Repos without an `onboarding.md` are skipped and reported with `found: false`. I
 |---|---|
 | 400 | Invalid body, or a repo reference that can't be parsed |
 | 404 | None of the repos has an `onboarding.md` |
-| 502 | The GitHub or LLM request failed (including GitHub rate limits) |
+| 502 | The GitHub or LLM request failed (including GitHub rate limits), or the model's reply couldn't be read as a guide |
 | 503 | `GOOGLE_API_KEY` is not set |
